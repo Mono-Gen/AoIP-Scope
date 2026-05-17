@@ -2,6 +2,8 @@
 
 A high-precision command-line analysis and live capture tool for AoIP (AES67, Dante, ST 2110-30/31) network audio streams.
 
+![AoIP-Scope Interactive CLI Demo](./assets/aoip_scope.gif)
+
 ---
 
 ## Features

@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime
 try:
     from backend.models.stream import AudioStream
     from backend.engine.audio_engine import AudioEngine
@@ -60,6 +61,7 @@ class PayloadAnalyzer:
                     clip_events.append({
                         "rel_sec": relative_sec,
                         "pcap_ts": pcap_ts, # Approximate absolute time
+                        "abs_time": datetime.fromtimestamp(pcap_ts).isoformat(),
                         "count": len(clips)
                     })
 
@@ -78,6 +80,7 @@ class PayloadAnalyzer:
                             silence_events.append({
                                 "rel_sec": rel_sec,
                                 "pcap_ts": pcap_ts, 
+                                "abs_time": datetime.fromtimestamp(pcap_ts).isoformat(),
                                 "duration_ms": (current_silence_samples // ch) / sr * 1000
                             })
                 
@@ -93,9 +96,11 @@ class PayloadAnalyzer:
             start_silence_idx = total_samples_processed - current_silence_samples
             rel_sec = (start_silence_idx // ch) / sr
             if len(silence_events) < 50:
+                end_pcap_ts = first_pcap_ts + rel_sec if first_pcap_ts else 0
                 silence_events.append({
                     "rel_sec": rel_sec,
-                    "pcap_ts": first_pcap_ts + rel_sec if first_pcap_ts else 0,
+                    "pcap_ts": end_pcap_ts,
+                    "abs_time": datetime.fromtimestamp(end_pcap_ts).isoformat() if end_pcap_ts else "N/A",
                     "duration_ms": (current_silence_samples // ch) / sr * 1000
                 })
 

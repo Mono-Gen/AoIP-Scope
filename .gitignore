@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+
+# OS files
+Thumbs.db
+db.
+Desktop.ini
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project Specific Data
+*.pcap
+*.pcapng
+*.wav
+report_*.json
+
+# Documentation & Internal Tasks (Local only)
+.docs/
+tasks/
+.tasks/
+archives/
+tools/
+venv/
+.agents/
+
+# Security
+.env
+.env.*
+
+# Build Artifacts
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.zip
+

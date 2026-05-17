@@ -19,16 +19,15 @@ class AudioEngine:
             num_samples_total = valid_len // 3
             if num_samples_total == 0: return np.zeros((num_channels, 0), dtype=np.int32)
             
+            # Big-Endian 24bit -> int32: Place MSB in byte[0], interpret as big-endian int32, and sign-extend via 8-bit right shift
             padded = np.zeros((num_samples_total, 4), dtype=np.uint8)
-            padded[:, 1] = raw[0::3]
-            padded[:, 2] = raw[1::3]
-            padded[:, 3] = raw[2::3]
+            padded[:, 0] = raw[0::3]  # MSB
+            padded[:, 1] = raw[1::3]  # Mid
+            padded[:, 2] = raw[2::3]  # LSB
+            # padded[:, 3] = 0  (already zero)
             
-            samples_int32 = padded.view(np.int32).reshape(-1)
-            samples_int32 = samples_int32.byteswap()
-            
-            mask = (samples_int32 >= 0x800000)
-            samples_int32[mask] -= 0x1000000
+            samples_int32 = padded.view(np.dtype('>i4')).reshape(-1).astype(np.int32)
+            samples_int32 = samples_int32 >> 8  # Sign extension: Shift the 32-bit value 8 bits right to fit within the 24-bit range
             
             n_frames = num_samples_total // num_channels
             return samples_int32[:n_frames * num_channels].reshape(n_frames, num_channels).T
@@ -115,8 +114,9 @@ class AudioEngine:
                 if sampwidth == 3:
                     num_samples = len(raw_bytes) // 3
                     padded = np.zeros((num_samples, 4), dtype=np.uint8)
+                    # WAV L24 is little-endian (LSB, Mid, MSB) -> Place in int32 byte[0:3]
                     padded[:, 0:3] = np.frombuffer(raw_bytes, dtype=np.uint8).reshape(-1, 3)
-                    pcm_data = padded.view(np.int32).reshape(n_frames, wr.getnchannels()).T
+                    pcm_data = padded.view(np.dtype('<i4')).reshape(n_frames, wr.getnchannels()).T
                     max_val = 8388608.0
                 else:
                     pcm_data = np.frombuffer(raw_bytes, dtype=np.int16).reshape(n_frames, wr.getnchannels()).T

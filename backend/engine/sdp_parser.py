@@ -9,7 +9,7 @@ class SdpParser:
     @staticmethod
     def parse(sdp_text: str) -> StreamMetadata:
         """
-        SDPテキストをパースして StreamMetadata オブジェクトを生成する。
+        Parses SDP text and generates a StreamMetadata object.
         """
         meta = StreamMetadata(ssrc=0, src_ip="", dst_ip="", dst_port=5004)
         
@@ -34,7 +34,7 @@ class SdpParser:
                 match = re.match(r"a=rtpmap:(\d+) (\w+)/(\d+)(?:/(\d+))?", line)
                 if match:
                     meta.payload_type = int(match.group(1))
-                    meta.encoding = match.group(2)
+                    meta.encoding = match.group(2).upper()  # RFC 4566: case-insensitive
                     meta.sample_rate = int(match.group(3))
                     meta.channels = int(match.group(4)) if match.group(4) else 1
             elif line.startswith("a=ptime:"):

@@ -42,7 +42,6 @@ class AudioStream:
     error_log: List[dict] = field(default_factory=list)
     stats: Dict = field(default_factory=lambda: {
         "max_jitter": 0.0,
-        "avg_jitter": 0.0,
         "min_ttl": 255,
         "max_ttl": 0
     })

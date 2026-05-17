@@ -91,7 +91,7 @@ class ConsoleManager:
                     dscp_label,
                     f"[{jitter_style}]{max_jitter_ms:.2f}[/]",
                     f"{len(stream.packets):,}",
-                    str(len(stream.error_log)),
+                    str(sum(e["count"] for e in stream.error_log)),
                     ph_str
                 )
             self.console.print(table)
@@ -124,7 +124,7 @@ class ConsoleManager:
             sap_table.add_column("PTP Clock Ref", style="yellow")
 
             for dst_ip, meta in sorted(sap_configs.items()):
-                ptp_ref = getattr(meta, 'ptp_clock', 'N/A')
+                ptp_ref = meta.ts_refclk or 'N/A'
                 fmt_str = f"{meta.encoding}/{meta.sample_rate}/{meta.channels} ({meta.ptime:.1f}ms)"
                 sap_table.add_row(
                     meta.session_name,

@@ -50,7 +50,7 @@ class PcapAnalyzer:
             self._post_process()
         except Exception as e:
             # Only print critical errors
-            print(f"Critial error reading PCAP: {e}")
+            print(f"Critical error reading PCAP: {e}")
 
     def _post_process(self):
         """Post-analysis: mDNS verification and heuristic analysis"""
@@ -76,14 +76,15 @@ class PcapAnalyzer:
             if self.progress_cb: self.progress_cb(f.tell(), self.total_size)
 
     def _run_pcap_manual(self, f, magic):
-        endian = '<' if magic in (0xA1B2C3D4, 0xA1B23C4D) else '>'
+        endian = '<' if magic in (0xA1B2C3D4, 0xA1B23C4D, 0xD4C3B2A1, 0x4D3CB2A1) else '>'
+        nano_ts = magic in (0xA1B23C4D, 0x4D3CB2A1)  # nanosecond精度PCAP
         f.seek(24) # Skip PCAP global header
         while True:
             pkt_hdr_start = f.tell()
             pkt_header = f.read(16)
             if len(pkt_header) < 16: break
             ts_sec, ts_usec, incl_len, _ = struct.unpack(f"{endian}IIII", pkt_header)
-            ts = ts_sec + (ts_usec / 1e6)
+            ts = ts_sec + (ts_usec / 1e9 if nano_ts else ts_usec / 1e6)
             buf = f.read(incl_len)
             if len(buf) < incl_len: break
             self._process_packet(ts, buf, pkt_hdr_start + 16)

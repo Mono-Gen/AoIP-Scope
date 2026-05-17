@@ -53,18 +53,33 @@ class HeuristicAnalyzer:
         if samples_per_packet == 0:
             samples_per_packet = estimated_sr // 1000 # Assume 1ms
             
-        bytes_per_sample_per_ch = 3 # L24
-        
-        # channels = payload_len / (samples_per_packet * 3)
-        channels = 2 # default
+        # 2. Infer encoding and number of channels
+        # Test both L24 (3 bytes/sample) and L16 (2 bytes/sample) and pick
+        # whichever gives a result closest to a whole number of channels.
+        payload_len = packets[0].payload_len
+
+        channels = 2  # default
+        encoding = "L24"
+
         if samples_per_packet > 0:
-            calc_ch = payload_len / (samples_per_packet * bytes_per_sample_per_ch)
-            if 0 < calc_ch < 128:
-                channels = max(1, round(calc_ch))
+            calc_l24 = payload_len / (samples_per_packet * 3)
+            calc_l16 = payload_len / (samples_per_packet * 2)
+
+            # Fractional deviation from nearest integer (lower = better fit)
+            err_l24 = abs(calc_l24 - round(calc_l24))
+            err_l16 = abs(calc_l16 - round(calc_l16))
+
+            if err_l16 < err_l24 and 0 < calc_l16 < 128:
+                # L16 fits more cleanly
+                encoding = "L16"
+                channels = max(1, round(calc_l16))
+            elif 0 < calc_l24 < 128:
+                encoding = "L24"
+                channels = max(1, round(calc_l24))
         
         # Apply inferred results
         stream.metadata.sample_rate = estimated_sr
         stream.metadata.channels = channels
-        stream.metadata.encoding = "L24"
+        stream.metadata.encoding = encoding
         stream.metadata.ptime = (samples_per_packet / estimated_sr) * 1000
         stream.metadata.is_heuristic = True

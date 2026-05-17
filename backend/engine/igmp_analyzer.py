@@ -40,6 +40,7 @@ class IGMPAnalyzer:
                 for _ in range(num_records):
                     if offset + 8 > len(igmp_data): break
                     record_type = igmp_data[offset]
+                    aux_data_len = igmp_data[offset + 1]  # RFC 3376 §4.2.12: Aux Data Len (32bit words)
                     num_sources = struct.unpack(">H", igmp_data[offset+2:offset+4])[0]
                     group_ip = socket.inet_ntoa(igmp_data[offset+4:offset+8])
                     
@@ -53,7 +54,7 @@ class IGMPAnalyzer:
                             "group_ip": group_ip,
                             "type": "IGMPv3 Leave (Include 0)"
                         })
-                    offset += 8 + (num_sources * 4)
+                    offset += 8 + (num_sources * 4) + (aux_data_len * 4)  # RFC 3376 §4.2.12
 
     def get_report(self, current_ts: float) -> dict:
         is_healthy = True

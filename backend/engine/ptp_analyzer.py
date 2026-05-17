@@ -15,11 +15,22 @@ class PTPSyncStatus:
     gm_clock_accuracy: int = 0xFE # Unknown
 
 class PTPAnalyzer:
+    """
+    Passive PTP v2 observer for offline PCAP analysis (IEEE 1588-2008).
+
+    Scope and limitations:
+      - Analyzes Sync and Announce messages only.
+      - Clock offset and path delay (Follow_Up / Delay_Req / Delay_Resp exchange)
+        cannot be measured from a passive PCAP capture, as the analyzer is not
+        a PTP participant and cannot issue Delay_Req messages.
+      - Health assessment is therefore indirect: Sync interval regularity and
+        Grand Master identity/priority fields are used as proxy indicators.
+    """
     def __init__(self):
         self.status = PTPSyncStatus()
 
     def process_packet(self, pcap_ts: float, data: bytes):
-        """PTP v2メッセージの深層パース (IEEE 1588-2008)"""
+        """Parse a PTP v2 message from raw UDP payload bytes."""
         if len(data) < 34: return
         
         # PTP Header (34 bytes)
@@ -65,12 +76,13 @@ class PTPAnalyzer:
         is_healthy = True
         if intervals and not (80 <= avg_interval <= 160):
             is_healthy = False
-        if self.status.domain_number != 0:
-            is_healthy = False
+        # AES67 recommends domain 0, but ST 2059-2 etc. may use domain 127, so trigger warning only
+        non_default_domain = self.status.domain_number != 0
 
         return {
             "current_gm": self.status.current_gm,
             "domain": self.status.domain_number,
+            "non_default_domain": non_default_domain,  # True if warning (not a critical error)
             "gm_priority1": self.status.gm_priority1,
             "gm_priority2": self.status.gm_priority2,
             "gm_clock_class": self.status.gm_clock_class,

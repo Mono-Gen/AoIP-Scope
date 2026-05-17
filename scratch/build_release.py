@@ -122,6 +122,7 @@ def build_executable():
         pyinstaller_exe,
         "--onefile",
         "--name", "aoip_scope",
+        "--icon", "assets/icon.ico",
         "--clean",
         "aoip_scope.py"
     ]

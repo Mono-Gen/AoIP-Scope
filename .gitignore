@@ -63,4 +63,6 @@ obj/
 *.dll
 *.pdb
 *.zip
+*.spec
+
 

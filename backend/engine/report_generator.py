@@ -42,6 +42,12 @@ class ReportGenerator:
                     "packet_count": len(stream.packets),
                     "max_jitter_ms": round(stream.stats['max_jitter'] * 1000, 3)
                 },
+                "payload_health": stream.stats.get("payload_health", {
+                    "status": "SKIP",
+                    "msg": "Not Analyzed",
+                    "clip_events": [],
+                    "silence_events": []
+                }),
                 "errors": stream.error_log
             }
             

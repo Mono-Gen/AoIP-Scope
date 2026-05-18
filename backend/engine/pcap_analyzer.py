@@ -77,7 +77,14 @@ class PcapAnalyzer:
         f.seek(0)
         pcap = dpkt.pcapng.Reader(f)
         for ts, buf in pcap:
-            self._process_packet(ts, buf, 0)
+            # dpkt.pcapng reads blocks and yields packet payload.
+            # f.tell() is exactly at the end of the current block.
+            # PCAPNG packet blocks end with payload (padded to 32-bit) and a 4-byte footer.
+            cap_len = len(buf)
+            padded_len = (cap_len + 3) & ~3
+            absolute_offset = f.tell() - 4 - padded_len
+            
+            self._process_packet(ts, buf, absolute_offset)
             if self.progress_cb: self.progress_cb(f.tell(), self.total_size)
 
     def _run_pcap_manual(self, f, magic):

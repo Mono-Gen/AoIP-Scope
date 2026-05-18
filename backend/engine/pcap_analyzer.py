@@ -150,9 +150,9 @@ class PcapAnalyzer:
 
             # mDNS (Port 5353)
             elif udp.dport == 5353:
-                self.mdns.process_packet(ip_data.src, udp.data)            # Dante Unicast Audio (Port in 14336-15359, starts with 02 00 00 01)
+                self.mdns.process_packet(ip_data.src, udp.data)            # Dante Unicast Audio (Port in 14336-15359, starts with 02 00)
             elif (14336 <= udp.dport <= 15359 and len(udp.data) >= 10 and 
-                  udp.data[:4] == b'\x02\x00\x00\x01'):
+                  udp.data[:2] == b'\x02\x00'):
                 rtp_packet_rel_offset = len(buf) - len(udp.data)
                 self._handle_dante_unicast(ts, udp.data, socket.inet_ntoa(ip_data.src), 
                                            socket.inet_ntoa(ip_data.dst), udp.dport, 

@@ -15,7 +15,7 @@ from backend.engine.report_generator import ReportGenerator
 from backend.engine.live_capture import LiveCapture
 
 class AoIPScopeCLI:
-    VERSION = "0.9.2"
+    VERSION = "0.9.3"
 
     def __init__(self):
         self.ui = ConsoleManager()

@@ -6,7 +6,7 @@ import re
 import shutil
 
 # Project configurations
-VERSION = "0.9.2"
+VERSION = "0.9.3"
 ZIP_FILENAME = f"AoIP-Scope_v{VERSION}.zip"
 DIST_DIR = "dist"
 BUILD_DIR = "build"

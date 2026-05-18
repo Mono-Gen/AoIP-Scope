@@ -43,6 +43,7 @@ Desktop.ini
 *.wav
 report_*.json
 
+
 # Documentation & Internal Tasks (Local only)
 .docs/
 tasks/
@@ -51,6 +52,7 @@ archives/
 tools/
 venv/
 .agents/
+
 
 # Security
 .env

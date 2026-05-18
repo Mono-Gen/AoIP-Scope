@@ -61,8 +61,13 @@ class PcapAnalyzer:
                 if not meta.session_name:
                     meta.session_name = self.mdns.dante_devices[meta.src_ip]["name"]
             
-            # If detailed format info via SDP is not available in SAP
-            if meta.dst_ip not in self.sap_configs:
+            # If detailed format info via SDP is available in SAP (even if it arrived later)
+            if meta.dst_ip in self.sap_configs:
+                s = self.sap_configs[meta.dst_ip]
+                meta.session_name, meta.channels, meta.sample_rate = s.session_name, s.channels, s.sample_rate
+                meta.encoding, meta.ptime, meta.payload_type = s.encoding, s.ptime, s.payload_type
+                meta.clock_domain, meta.ts_refclk, meta.mediaclk = s.clock_domain, s.ts_refclk, s.mediaclk
+            else:
                 HeuristicAnalyzer.analyze(stream)
             
             # Payload health analysis
@@ -145,7 +150,13 @@ class PcapAnalyzer:
 
             # mDNS (Port 5353)
             elif udp.dport == 5353:
-                self.mdns.process_packet(ip_data.src, udp.data)
+                self.mdns.process_packet(ip_data.src, udp.data)            # Dante Unicast Audio (Port in 14336-15359, starts with 02 00 00 01)
+            elif (14336 <= udp.dport <= 15359 and len(udp.data) >= 10 and 
+                  udp.data[:4] == b'\x02\x00\x00\x01'):
+                rtp_packet_rel_offset = len(buf) - len(udp.data)
+                self._handle_dante_unicast(ts, udp.data, socket.inet_ntoa(ip_data.src), 
+                                           socket.inet_ntoa(ip_data.dst), udp.dport, 
+                                           offset + rtp_packet_rel_offset, src_mac, dst_mac, dscp, ttl, vlan_id)
 
             # RTP (Guess by header, exclude Dante Control and standard protocols)
             elif (len(udp.data) >= 12 and (udp.data[0] & 0xC0) == 0x80 and
@@ -158,8 +169,8 @@ class PcapAnalyzer:
                 if not (96 <= pt <= 127): return
                 rtp_packet_rel_offset = len(buf) - len(udp.data)
                 self._handle_rtp(ts, udp.data, socket.inet_ntoa(ip_data.src), 
-                               socket.inet_ntoa(ip_data.dst), udp.dport, 
-                               offset + rtp_packet_rel_offset, src_mac, dst_mac, dscp, ttl, vlan_id)
+                                socket.inet_ntoa(ip_data.dst), udp.dport, 
+                                offset + rtp_packet_rel_offset, src_mac, dst_mac, dscp, ttl, vlan_id)
         except Exception:
             pass # Ignore individual packet errors and continue
 
@@ -191,6 +202,55 @@ class PcapAnalyzer:
             
             stream = self.streams[ssrc]
             self._analyze_packet_timing(stream, rtp, ts, rtp_offset, ttl)
+        except Exception:
+            pass
+
+    def _handle_dante_unicast(self, ts, udp_buf, src_ip, dst_ip, dport, udp_offset, src_mac, dst_mac, dscp, ttl, vlan_id):
+        try:
+            if len(udp_buf) < 10: return
+            
+            flow_id = struct.unpack('>H', udp_buf[2:4])[0]
+            val_bytes = udp_buf[4:9]
+            val = int.from_bytes(val_bytes, byteorder='big')
+            
+            # Sequence number: derived from 5-byte sample-accurate timestamp
+            # Dante low-latency flow typically packages 16 samples per packet
+            seq = (val // 16) & 0xFFFF
+            rtp_ts = val & 0xFFFFFFFF
+            
+            # Generate a pseudo-SSRC that is uniquely mapped to the unicast flow
+            import hashlib
+            key_str = f"{dst_ip}:{dport}"
+            h = hashlib.md5(key_str.encode()).digest()
+            pseudo_ssrc = 0xDA000000 | (struct.unpack('>I', h[:4])[0] & 0x00FFFFFF)
+            
+            if pseudo_ssrc not in self.streams:
+                # Deduce channel count dynamically (standard Dante is L24, 16 samples/packet)
+                payload_len = len(udp_buf) - 9
+                channels = max(1, payload_len // 3 // 16)
+                
+                meta = StreamMetadata(
+                    ssrc=pseudo_ssrc, src_ip=src_ip, dst_ip=dst_ip, dst_port=dport,
+                    src_mac=src_mac, dst_mac=dst_mac, protocol="Dante (Unicast)",
+                    session_name=f"Dante Unicast Flow {flow_id}",
+                    encoding="L24", sample_rate=48000, channels=channels, ptime=0.333,
+                    dscp=dscp, ttl=ttl, vlan_id=vlan_id
+                )
+                self.streams[pseudo_ssrc] = AudioStream(metadata=meta)
+                
+            stream = self.streams[pseudo_ssrc]
+            
+            # Mock RTP class for timing analysis compatibility
+            class MockRTP:
+                def __init__(self, seq, ts, data):
+                    self.seq = seq
+                    self.ts = ts
+                    self.data = data
+                def __len__(self):
+                    return len(self.data) + 9
+                    
+            mock_rtp = MockRTP(seq, rtp_ts, udp_buf[9:])
+            self._analyze_packet_timing(stream, mock_rtp, ts, udp_offset, ttl)
         except Exception:
             pass
 

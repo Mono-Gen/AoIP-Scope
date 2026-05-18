@@ -125,3 +125,50 @@ Displays the list of available Network Interface Cards (NICs), including their I
 ### 4.3 Audio extraction fails or outputs "SKIP: Not a raw PCM stream"
 - **Cause**: The stream's audio format is not L24 or L16 PCM, or it does not use a valid dynamic RTP payload type (96–127).
   - *Solution*: Check the "Format" column in the analysis summary to confirm that the stream is an AES67 / Dante compliant 24-bit PCM (L24) or 16-bit PCM (L16) stream.
+
+---
+
+## 5. WAV File Size Calculations and Examples (Advanced Reference)
+
+The size of the WAV audio files extracted by this tool is mathematically bound to AoIP-specific protocol parameters (packet transmission interval: `ptime`) and the capture duration (total packet count).
+
+The WAV file size (in bytes) is uniquely determined by the following formula:
+
+$$\text{File Size} = (\text{Total Frames} \times \text{Channels} \times \text{Bytes per Sample}) + 44 \text{ Bytes (WAV Header)}$$
+* *Note: `Bytes per Sample` is 3 bytes for 24-bit PCM (L24) and 2 bytes for 16-bit PCM (L16).*
+* *Note: `Total Frames` is calculated as $\text{Packet Count} \times \text{Samples per Packet}$.*
+
+Below are real-world examples and breakdowns of two streams extracted from the exact same PCAPNG file.
+
+### Example 1: Dante Multicast (AES67) Stream
+* **Filename**: `extract_02CCFD32.wav`
+* **Stream Parameters**: 2ch Stereo / L24 (24-bit PCM) / 48000 Hz
+* **Transmission Interval (ptime)**: **1.0 ms** (**48 samples** per packet)
+* **Total Captured Packets**: 40,137 packets
+* **Total Frames Calculation**:
+  $$40,137\text{ packets} \times 48\text{ samples} = 1,926,576\text{ frames}$$
+* **Duration (seconds)**:
+  $$1,926,576 \div 48,000\text{Hz} = \mathbf{40.137\text{ seconds}}$$
+* **WAV File Size Calculation**:
+  $$1,926,576 \times 2\text{ch} \times 3\text{bytes} + 44\text{bytes} = \mathbf{11,559,500\text{ bytes}}$$
+
+### Example 2: Dante Unicast Stream
+* **Filename**: `extract_DA434761.wav`
+* **Stream Parameters**: 2ch Stereo / L24 (24-bit PCM) / 48000 Hz
+* **Transmission Interval (ptime)**: **0.333 ms** (**16 samples** per packet)
+* **Total Captured Packets**: 111,945 packets
+* **Total Frames Calculation**:
+  $$111,945\text{ packets} \times 16\text{ samples} = 1,791,120\text{ frames}$$
+* **Duration (seconds)**:
+  $$1,791,120 \div 48,000\text{Hz} = \mathbf{37.315\text{ seconds}}$$
+* **WAV File Size Calculation**:
+  $$1,791,120 \times 2\text{ch} \times 3\text{bytes} + 44\text{bytes} = \mathbf{10,746,764\text{ bytes}}$$
+
+### Takeaways & Key Concepts
+1. **Influence of Packet Transmission Interval (ptime)**:
+   A Dante Unicast flow (0.333ms) transmits packets approximately 3 times more frequently than a multicast flow (1.0ms). While the packet count is drastically higher, the payload size (samples per packet) is exactly one-third.
+2. **Difference in Captured Duration**:
+   Due to slight capture start/stop timing offsets, the unicast flow recorded duration (37.315s) is about 2.8 seconds shorter than the multicast flow (40.137s). This duration offset translates directly to a difference of roughly 812 KB in file size.
+
+Because AoIP-Scope performs bit-perfect data reconstruction directly from network raw payloads, the file sizes precisely reflect the underlying protocol characteristics and capture time windows.
+

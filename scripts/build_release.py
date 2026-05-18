@@ -6,11 +6,11 @@ import re
 import shutil
 
 # Project configurations
-VERSION = "0.9.1"
+VERSION = "0.9.2"
 ZIP_FILENAME = f"AoIP-Scope_v{VERSION}.zip"
 DIST_DIR = "dist"
 BUILD_DIR = "build"
-EXE_NAME = "aoip_scope.exe"
+EXE_NAME = "AoIP-Scope.exe"
 TARGET_EXE = os.path.join(DIST_DIR, EXE_NAME)
 
 # Files to be included in the release ZIP package (only public assets)
@@ -68,7 +68,7 @@ def security_scan():
     print_step("Starting Security Scan...")
     
     failed = False
-    exclude_dirs = {".git", "venv", "__pycache__", "build", "dist", ".agents", ".tasks", ".docs", "tools"}
+    exclude_dirs = {".git", "venv", "__pycache__", "build", "dist", ".agents", ".tasks", ".docs", "scripts"}
     exclude_files = {ZIP_FILENAME, "build_release.py"}
     
     # Pre-compile regex patterns for faster scanning
@@ -121,7 +121,7 @@ def build_executable():
     cmd = [
         pyinstaller_exe,
         "--onefile",
-        "--name", "aoip_scope",
+        "--name", "AoIP-Scope",
         "--icon", "assets/icon.ico",
         "--clean",
         "aoip_scope.py"
@@ -163,7 +163,7 @@ def package_release():
 def clean_build_artifacts():
     """Clean temporary PyInstaller build artifacts."""
     print_step("Cleaning build artifacts...")
-    spec_file = "aoip_scope.spec"
+    spec_file = "AoIP-Scope.spec"
     if os.path.exists(spec_file):
         os.remove(spec_file)
         print(f"Removed: {spec_file}")

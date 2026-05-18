@@ -8,6 +8,14 @@ class ConsoleManager:
     def __init__(self):
         # Configuration to prevent encoding issues in Windows environments
         self.console = Console(legacy_windows=True) if os.name == 'nt' else Console()
+        
+        # Determine a safe spinner based on console encoding (avoid Braille dots on CP932)
+        encoding = getattr(self.console, "encoding", "utf-8")
+        if encoding:
+            encoding = encoding.lower()
+        else:
+            encoding = "utf-8"
+        self.safe_spinner = "dots" if "utf" in encoding or "u8" in encoding else "line"
 
     def print_banner(self, version: str):
         self.console.print(Panel.fit(
@@ -26,7 +34,7 @@ class ConsoleManager:
 
     def get_progress(self) -> Progress:
         return Progress(
-            SpinnerColumn(),
+            SpinnerColumn(self.safe_spinner),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
@@ -40,7 +48,7 @@ class ConsoleManager:
         
         # 1. Active RTP Streams Table (if any)
         if streams:
-            table = Table(title="Active RTP Stream Inventory", border_style="dim", title_style="bold underline")
+            table = Table(title="Active Audio Stream Inventory", border_style="dim", title_style="bold underline", show_lines=True)
             table.add_column("SSRC / Protocol", style="cyan", no_wrap=True)
             table.add_column("Source IP / Name", style="magenta")
             table.add_column("Dest IP:Port", style="magenta")
@@ -168,4 +176,4 @@ class ConsoleManager:
         self.console.print(table)
 
     def status(self, text: str):
-        return self.console.status(text)
+        return self.console.status(text, spinner=self.safe_spinner)

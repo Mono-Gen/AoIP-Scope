@@ -23,6 +23,8 @@ class StreamMetadata:
     ts_refclk: Optional[str] = None  # PTP Master ID from SDP
     mediaclk: Optional[str] = None
     is_heuristic: bool = False
+    qos_compliant: bool = True
+    qos_alerts: List[str] = field(default_factory=list)
 
 @dataclass
 class PacketInfo:

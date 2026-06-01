@@ -15,9 +15,15 @@ from backend.engine.report_generator import ReportGenerator
 from backend.engine.live_capture import LiveCapture
 
 class AoIPScopeCLI:
-    VERSION = "0.9.4"
+    VERSION = "0.9.5"
 
     def __init__(self):
+        # Auto-widening terminal on Windows to prevent Rich table truncation
+        import platform
+        if platform.system() == "Windows":
+            import os
+            os.system('mode con: cols=140 lines=45')
+
         self.ui = ConsoleManager()
         self.parser = argparse.ArgumentParser(description="AoIP-Scope: Professional AES67/ST2110 Diagnostic CLI")
         self.setup_args()
@@ -51,23 +57,40 @@ class AoIPScopeCLI:
         parser_ifaces = subparsers.add_parser("ifaces", help="List available network interfaces")
 
     def run(self):
-        # Backwards compatibility: if no subcommand is given, default to 'analyze'
         sys_args = sys.argv[1:]
+        
+        # Detect if launched directly (double-click) or via file drag-and-drop
+        is_direct_run = False
+        if not sys_args:
+            is_direct_run = True
+        elif len(sys_args) == 1 and sys_args[0] not in ["analyze", "record", "ifaces", "-h", "--help", "-v", "--version"]:
+            is_direct_run = True
+            sys_args.insert(0, "analyze")
+            
+        # Backwards compatibility: default to 'analyze' subcommand if not specified
         if sys_args and sys_args[0] not in ["analyze", "record", "ifaces", "-h", "--help", "-v", "--version"]:
             sys_args.insert(0, "analyze")
         
-        args = self.parser.parse_args(sys_args)
-
-        if not args.command:
-            self.parser.print_help()
-            return
-
-        if args.command == "ifaces":
-            self.run_ifaces()
-        elif args.command == "record":
-            self.run_record(args)
-        elif args.command == "analyze":
-            self.run_analyze(args)
+        try:
+            args = self.parser.parse_args(sys_args)
+            
+            if not args.command:
+                self.parser.print_help()
+                return
+    
+            if args.command == "ifaces":
+                self.run_ifaces()
+            elif args.command == "record":
+                self.run_record(args)
+            elif args.command == "analyze":
+                self.run_analyze(args)
+        except SystemExit:
+            # Trap SystemExit from --help or argument parsing errors to prevent instant closure
+            pass
+        finally:
+            if is_direct_run:
+                print("\n" + "=" * 50)
+                input("Press [Enter] to exit...")
 
     def run_ifaces(self):
         self.ui.print_banner(self.VERSION)
@@ -192,13 +215,20 @@ class AoIPScopeCLI:
         self.ui.console.print(f"\n[bold blue]Extracting Audio:[/bold blue] SSRC 0x{ssrc:08X} ({encoding}/{sample_rate}Hz/{channels}ch)")
         
         solo_ch = (args.mono - 1) if args.mono is not None else None
+        ch_list = None
+        
         if solo_ch is None and args.ch:
-            solo_ch = int(args.ch.split(',')[0]) - 1
+            try:
+                ch_tokens = args.ch.split(',')
+                ch_list = [int(tok.strip()) - 1 for tok in ch_tokens if tok.strip()]
+            except ValueError:
+                self.ui.print_error(f"Invalid channel format: {args.ch}. Use format like '3,4' or '5'.")
+                return
 
         with self.ui.status("[bold green]Decoding and writing WAV..."):
             payloads = analyzer.load_payloads(ssrc)
             wav_bytes = AudioEngine.generate_wav_with_timing(
-                payloads, channels, sample_rate, encoding=encoding, ptime=ptime, solo_ch=solo_ch
+                payloads, channels, sample_rate, encoding=encoding, ptime=ptime, solo_ch=solo_ch, ch_list=ch_list
             )
             
             out_name = args.out if args.out else f"extract_{ssrc:08X}.wav"

@@ -19,8 +19,8 @@ To ensure the correct operation of this tool, the following environment is requi
 
 ## 2. Installation
 
-1. Extract the provided ZIP file (`AoIP-Scope_v0.9.0.zip`) into any desired directory.
-2. The executable file `aoip_scope.exe` in the extracted folder is the standalone application.
+1. Extract the provided ZIP file (`AoIP-Scope_v0.9.5.zip`) into any desired directory.
+2. The executable file `AoIP-Scope.exe` in the extracted folder is the standalone application.
 
 ---
 
@@ -44,6 +44,7 @@ Performs in-depth diagnostics on the captured PCAP/PCAPNG file. Offline analysis
 - `--ssrc` : The target stream's SSRC in hexadecimal (e.g., `0x12345678`) for audio extraction and payload analysis.
 - `--out` : Output WAV filename for the extracted audio.
 - `--mono` : The 1-based channel number to extract as a single mono WAV file from a multi-channel stream.
+- `--ch` : A comma-separated list of channel numbers to extract as a stereo or multi-channel WAV file (e.g., `--ch 3,4` extracts channels 3 and 4 as a stereo WAV).
 - `--report` : Generates a detailed JSON diagnostic report.
 
 **Example (Perform full stream analysis and summary display):**
@@ -63,8 +64,14 @@ Performs in-depth diagnostics on the captured PCAP/PCAPNG file. Offline analysis
 
 **Example (Extract channel 1 only as a mono WAV):**
 ```powershell
-.\aoip_scope.exe analyze ./raw_capture.pcapng --ssrc 0x4B3D2A1C --mono 1 --out ./extracted_ch1.wav
+.\AoIP-Scope.exe analyze ./raw_capture.pcapng --ssrc 0x4B3D2A1C --mono 1 --out ./extracted_ch1.wav
 ```
+
+**Example (Extract channels 3 and 4 as a stereo WAV):**
+```powershell
+.\AoIP-Scope.exe analyze ./raw_capture.pcapng --ssrc 0x4B3D2A1C --ch 3,4 --out ./stereo_34.wav
+```
+**Note: You can combine any channels, such as `--ch 3,4,5` for a 3-channel WAV.*
 
 **Example (Generate a detailed JSON diagnostic report):**
 ```powershell
@@ -103,8 +110,26 @@ Displays the list of available Network Interface Cards (NICs), including their I
 
 **Example:**
 ```powershell
-.\aoip_scope.exe ifaces
+.\AoIP-Scope.exe ifaces
 ```
+
+---
+
+### 3.4 Windows Portability & Usability Features
+
+This tool features intelligent, built-in aids specifically designed for Windows console environments, enabling smooth, portable operation by operators and audio engineers on site:
+
+1. **Terminal Window Auto-Resize**:
+   - When launched on Windows, the tool automatically resizes the console window to **140 columns and 45 lines** in columns. This prevents high-density metrics (like SSRC, IP Addresses, Jitter, Bandwidth, and Format/Channel fields) from getting truncated as `...` by Rich layout, ensuring all diagnostic tables display beautifully in full width.
+2. **Instant Window-Close Prevention on Double-Click or Drag-and-Drop**:
+   - Usually, command-line utilities immediately close the Command Prompt window upon execution completion when double-clicked or when a file is dragged-and-dropped onto their icons.
+   - AoIP-Scope detects direct launches and **only pauses the window when double-clicked or when a single PCAP file is dragged-and-dropped onto its icon** by presenting the following prompt:
+     ```text
+     ==================================================
+     Press [Enter] to exit...
+     ```
+   - This keeps the Command Prompt window open so you can carefully review the diagnostic table at your own pace before pressing `Enter` to close it.
+   - *Note*: This pause is automatically skipped when called via standard scripts or subcommands, preserving seamless workflow automation.
 
 ---
 

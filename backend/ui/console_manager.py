@@ -16,6 +16,7 @@ class ConsoleManager:
         else:
             encoding = "utf-8"
         self.safe_spinner = "dots" if "utf" in encoding or "u8" in encoding else "line"
+        self.safe_warn_icon = "⚠️" if "utf" in encoding or "u8" in encoding else "[!]"
 
     def print_banner(self, version: str):
         self.console.print(Panel.fit(
@@ -50,11 +51,12 @@ class ConsoleManager:
         if streams:
             table = Table(title="Active Audio Stream Inventory", border_style="dim", title_style="bold underline", show_lines=True)
             table.add_column("SSRC / Protocol", style="cyan", no_wrap=True)
-            table.add_column("Source IP / Name", style="magenta")
-            table.add_column("Dest IP:Port", style="magenta")
-            table.add_column("Format", style="green")
+            table.add_column("Source IP / Name", style="magenta", no_wrap=True)
+            table.add_column("Dest IP:Port", style="magenta", no_wrap=True)
+            table.add_column("Format", style="green", no_wrap=True)
             table.add_column("QoS (DSCP)", justify="center")
             table.add_column("Jitter (ms)", justify="right")
+            table.add_column("Bandwidth", justify="right")
             table.add_column("Pkts", justify="right")
             table.add_column("Errs", justify="right", style="red")
             table.add_column("Payload Health", style="white")
@@ -74,6 +76,9 @@ class ConsoleManager:
                 if meta.dscp == 46: dscp_label = "[bold red]46 (EF)[/bold red]"
                 elif meta.dscp == 34: dscp_label = "[bold yellow]34 (AF41)[/bold yellow]"
                 elif meta.dscp == 56: dscp_label = "[bold magenta]56 (CS7)[/bold magenta]"
+                
+                if not meta.qos_compliant:
+                    dscp_label = f"[bold red]{self.safe_warn_icon} {meta.dscp}[/bold red]\n[dim red]Non-std[/dim red]"
 
                 max_jitter_ms = stream.stats['max_jitter'] * 1000
                 jitter_style = "green" if max_jitter_ms < 2.0 else "yellow" if max_jitter_ms < 5.0 else "red"
@@ -91,6 +96,10 @@ class ConsoleManager:
                 else:
                     ph_str = f"[green][OK] {ph['msg']}[/green]"
                 
+                pps = stream.stats.get("avg_packet_rate_pps", 0.0)
+                mbps = stream.stats.get("avg_bandwidth_mbps", 0.0)
+                bw_str = f"{pps:,.1f} pps\n({mbps:.3f} Mbps)"
+
                 table.add_row(
                     f"0x{ssrc:08X}\n[dim]{meta.protocol}[/dim]{vlan_str}",
                     src_info,
@@ -98,11 +107,23 @@ class ConsoleManager:
                     fmt_str,
                     dscp_label,
                     f"[{jitter_style}]{max_jitter_ms:.2f}[/]",
+                    bw_str,
                     f"{len(stream.packets):,}",
                     str(sum(e["count"] for e in stream.error_log)),
                     ph_str
                 )
             self.console.print(table)
+            
+            # QoS alerts detail
+            qos_issues = []
+            for ssrc, stream in streams.items():
+                if not stream.metadata.qos_compliant:
+                    for alert in stream.metadata.qos_alerts:
+                        qos_issues.append(f"Stream 0x{ssrc:08X}: {alert}")
+            if qos_issues:
+                self.console.print(f"\n[bold yellow]{self.safe_warn_icon} QoS Configuration Issues Detected:[/bold yellow]")
+                for issue in qos_issues:
+                    self.console.print(f"  [red]- {issue}[/red]")
         else:
             self.console.print(Panel.fit(
                 "[yellow]No active RTP audio streams captured (Non-mirror / Access port mode?)[/yellow]\n"

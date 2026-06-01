@@ -43,7 +43,7 @@ class AudioEngine:
             raise ValueError(f"Unsupported encoding: {encoding}")
 
     @staticmethod
-    def generate_wav_with_timing(packet_data: List[Tuple[int, bytes]], num_channels: int, sample_rate: int, encoding: str = "L24", ptime: float = 1.0, solo_ch: int = None) -> bytes:
+    def generate_wav_with_timing(packet_data: List[Tuple[int, bytes]], num_channels: int, sample_rate: int, encoding: str = "L24", ptime: float = 1.0, solo_ch: int = None, ch_list: List[int] = None) -> bytes:
         """
         [Section 5-3 Compliant] Output WAV with timing correction and bit depth maintained
         """
@@ -69,7 +69,15 @@ class AudioEngine:
         if not all_samples: return b""
         full_pcm = np.concatenate(all_samples, axis=1)
 
-        if solo_ch is not None:
+        if ch_list is not None:
+            # Slicing multiple channels (e.g. [2, 3] for 3,4ch stereo)
+            valid_ch = [c for c in ch_list if 0 <= c < full_pcm.shape[0]]
+            if valid_ch:
+                full_pcm = full_pcm[valid_ch, :]
+                out_channels = len(valid_ch)
+            else:
+                out_channels = num_channels
+        elif solo_ch is not None:
             idx = int(solo_ch)
             if 0 <= idx < full_pcm.shape[0]:
                 full_pcm = full_pcm[idx : idx + 1, :]

@@ -73,6 +73,37 @@ class PcapAnalyzer:
             # Payload health analysis
             PayloadAnalyzer.analyze(stream, self)
 
+            # 1. QoS (DSCP) verification
+            meta.qos_compliant = True
+            meta.qos_alerts = []
+            
+            DSCP_EF = 46      # Expedited Forwarding (AES67/Dante Audio Recommended)
+            DSCP_AF41 = 34    # Assured Forwarding 41 (AES67 Alternative Audio)
+            
+            if "Dante" in meta.protocol:
+                if meta.dscp != DSCP_EF:
+                    meta.qos_compliant = False
+                    meta.qos_alerts.append(f"Dante Audio DSCP ({meta.dscp}) is not EF (46)")
+            elif meta.protocol == "AES67":
+                if meta.dscp not in (DSCP_EF, DSCP_AF41):
+                    meta.qos_compliant = False
+                    meta.qos_alerts.append(f"AES67 Audio DSCP ({meta.dscp}) is not EF (46) or AF41 (34)")
+
+            # 2. Bandwidth (Mbps) and packet rate (pps) calculation
+            avg_bandwidth_mbps = 0.0
+            avg_packet_rate_pps = 0.0
+            
+            if len(stream.packets) >= 2:
+                duration = stream.packets[-1].pcap_ts - stream.packets[0].pcap_ts
+                if duration > 0:
+                    # Sum packet sizes: L3 overhead (IP + UDP + RTP = 40 bytes) + payload length
+                    total_bytes = sum(p.payload_len + 40 for p in stream.packets)
+                    avg_bandwidth_mbps = (total_bytes * 8) / (duration * 1_000_000)
+                    avg_packet_rate_pps = len(stream.packets) / duration
+            
+            stream.stats["avg_bandwidth_mbps"] = round(avg_bandwidth_mbps, 3)
+            stream.stats["avg_packet_rate_pps"] = round(avg_packet_rate_pps, 1)
+
     def _run_pcapng(self, f):
         f.seek(0)
         pcap = dpkt.pcapng.Reader(f)
@@ -194,6 +225,13 @@ class PcapAnalyzer:
         try:
             rtp = dpkt.rtp.RTP(rtp_buf)
             ssrc = rtp.ssrc
+            
+            # RTP padding removal: check P (padding) flag (bit 5 of first byte)
+            has_padding = bool(rtp_buf[0] & 0x20)
+            if has_padding and len(rtp.data) > 0:
+                padding_len = rtp.data[-1]
+                if 0 < padding_len <= len(rtp.data):
+                    rtp.data = rtp.data[:-padding_len]
             if ssrc not in self.streams:
                 meta = StreamMetadata(
                     ssrc=ssrc, src_ip=src_ip, dst_ip=dst_ip, dst_port=dport,

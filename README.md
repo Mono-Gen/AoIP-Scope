@@ -7,8 +7,8 @@ A high-precision command-line analysis and live capture tool for AoIP (AES67, Da
 ---
 
 ## Features
-- **Deep Packet Analysis**: Offline analysis of PCAP/PCAPNG capture files, checking PTP Grandmaster stability, packet loss, duplicate packets, and inter-arrival jitter.
-- **High-Fidelity Audio Decoding**: Decodes 24-bit (L24) and 16-bit (L16) raw PCM streams, performs automated micro-anomaly scans (clipping, silence drop), and exports bit-perfect audio as WAV files.
+- **Deep Packet Analysis**: Offline analysis of PCAP/PCAPNG capture files, checking PTP Grandmaster stability, packet loss, duplicate packets, network QoS (DSCP) compliance, and packet rate / bandwidth usage (pps / Mbps).
+- **High-Fidelity Audio Decoding**: Decodes 24-bit (L24) and 16-bit (L16) raw PCM streams, removes RTP padding bytes, performs automated micro-anomaly scans (clipping, silence drop), and exports bit-perfect single or multi-channel audio (mono, stereo, etc.) as WAV files.
 - **Live Packet Capture**: Memory-safe streaming capture supporting both passive monitoring (Mirror mode) and active multicast subscription (IGMPv2 Join/Leave).
 - **Diagnostics Reporting**: Automatic discovery of Dante & network devices via mDNS, SAP/SDP stream discovery, and customizable JSON report export.
 - **Sleek CLI Interface**: Beautiful console formatting, table views, and real-time progress indicators powered by `rich`.
@@ -20,6 +20,12 @@ A high-precision command-line analysis and live capture tool for AoIP (AES67, Da
 For offline PCAP/PCAPNG file analysis (`analyze` subcommand), no special capture drivers are required. However, for live capturing:
 1. **Npcap**: Installation of **Npcap** (with WinPcap API compatibility) is mandatory on Windows for live capturing (`record`) and listing interfaces (`ifaces`).
 2. **Administrator Rights**: Launching terminal (Command Prompt / PowerShell) with "Run as Administrator" is required to capture live raw network packets.
+
+---
+
+## Download & Releases
+
+If you prefer not to run the tool from source, you can download the latest pre-compiled standalone Windows executable (`AoIP-Scope.exe` bundled inside a ZIP package) directly from the [GitHub Releases](https://github.com/Mono-Gen/AoIP-Scope/releases) page.
 
 ---
 
@@ -46,6 +52,11 @@ python aoip_scope.py analyze path/to/capture.pcapng --ssrc 0x4B3D2A1C --out outp
 To extract channel 1 only from a multi-channel stream as a single mono WAV:
 ```bash
 python aoip_scope.py analyze path/to/capture.pcapng --ssrc 0x4B3D2A1C --mono 1 --out ch1_output.wav
+```
+
+To extract channels 3 and 4 together as a stereo WAV file:
+```bash
+python aoip_scope.py analyze path/to/capture.pcapng --ssrc 0x4B3D2A1C --ch 3,4 --out stereo_34.wav
 ```
 
 To generate a detailed JSON diagnostic report:

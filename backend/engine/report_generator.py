@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict
 
 class ReportGenerator:
-    VERSION = "0.9.2"
+    VERSION = "0.9.5"
 
     @staticmethod
     def generate(analyzer, output_dir: str = ".") -> str:
@@ -69,7 +69,9 @@ class ReportGenerator:
                     "vlan_id": m.vlan_id,
                     "dscp":    m.dscp,
                     "min_ttl": stream.stats["min_ttl"],
-                    "max_ttl": stream.stats["max_ttl"]
+                    "max_ttl": stream.stats["max_ttl"],
+                    "qos_compliant": m.qos_compliant,
+                    "qos_alerts": m.qos_alerts
                 },
                 "format": {
                     "encoding":     m.encoding,
@@ -89,6 +91,8 @@ class ReportGenerator:
                     "loss_rate_pct":  loss_rate_pct,
                     "avg_jitter_ms":  avg_jitter_ms,
                     "max_jitter_ms":  max_jitter_ms,
+                    "avg_bandwidth_mbps": stream.stats.get("avg_bandwidth_mbps", 0.0),
+                    "avg_packet_rate_pps": stream.stats.get("avg_packet_rate_pps", 0.0),
                     "duration_sec":   duration_sec
                 },
                 "payload_health": stream.stats.get("payload_health", {

@@ -2,6 +2,7 @@ import dpkt
 import socket
 import struct
 import os
+import hashlib
 from typing import Dict, List, Tuple
 try:
     from backend.models.stream import AudioStream, StreamMetadata, PacketInfo
@@ -171,7 +172,7 @@ class PcapAnalyzer:
                 udp = ip_data.data
             else:
                 try: udp = dpkt.udp.UDP(ip_data.data)
-                except: return # Malformed UDP
+                except Exception: return # Malformed UDP
 
             src_mac = eth.src.hex(':')
             dst_mac = eth.dst.hex(':')
@@ -264,7 +265,6 @@ class PcapAnalyzer:
             rtp_ts = val & 0xFFFFFFFF
             
             # Generate a pseudo-SSRC that is uniquely mapped to the unicast flow
-            import hashlib
             key_str = f"{dst_ip}:{dport}"
             h = hashlib.md5(key_str.encode()).digest()
             pseudo_ssrc = 0xDA000000 | (struct.unpack('>I', h[:4])[0] & 0x00FFFFFF)
@@ -312,6 +312,7 @@ class PcapAnalyzer:
             sr = stream.metadata.sample_rate if stream.metadata.sample_rate else 48000
             expected_diff = (rtp.ts - last.rtp_ts) / sr
             d = abs(arrival_diff - expected_diff)
+            # RFC 3550 Section 6.4.1: interarrival jitter estimator J(i) = J(i-1) + (|D(i-1,i)| - J(i-1)) / 16
             jitter = last.jitter + (d - last.jitter) / 16.0
         
         # Sequence analysis
@@ -345,7 +346,7 @@ class PcapAnalyzer:
                 for p in self.streams[ssrc].packets:
                     f.seek(p.payload_offset)
                     res.append((p.seq, f.read(p.payload_len)))
-        except: pass
+        except OSError: pass
         return res
 
     def iter_payloads(self, ssrc: int):
@@ -356,4 +357,4 @@ class PcapAnalyzer:
                 for p in self.streams[ssrc].packets:
                     f.seek(p.payload_offset)
                     yield p.seq, p.pcap_ts, f.read(p.payload_len)
-        except: pass
+        except OSError: pass

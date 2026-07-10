@@ -19,7 +19,7 @@ To ensure the correct operation of this tool, the following environment is requi
 
 ## 2. Installation
 
-1. Extract the provided ZIP file (`AoIP-Scope_v0.9.5.zip`) into any desired directory.
+1. Extract the provided ZIP file (`AoIP-Scope_v0.10.0.zip`) into any desired directory.
 2. The executable file `AoIP-Scope.exe` in the extracted folder is the standalone application.
 
 ---

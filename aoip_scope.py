@@ -15,7 +15,7 @@ from backend.engine.report_generator import ReportGenerator
 from backend.engine.live_capture import LiveCapture
 
 class AoIPScopeCLI:
-    VERSION = "0.9.5"
+    VERSION = "0.10.0"
 
     def __init__(self):
         # Auto-widening terminal on Windows to prevent Rich table truncation

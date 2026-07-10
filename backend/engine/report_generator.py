@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict
 
 class ReportGenerator:
-    VERSION = "0.9.5"
+    VERSION = "0.10.0"
 
     @staticmethod
     def generate(analyzer, output_dir: str = ".") -> str:

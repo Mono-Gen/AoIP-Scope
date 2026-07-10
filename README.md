@@ -12,6 +12,7 @@ A high-precision command-line analysis and live capture tool for AoIP (AES67, Da
 - **Live Packet Capture**: Memory-safe streaming capture supporting both passive monitoring (Mirror mode) and active multicast subscription (IGMPv2 Join/Leave).
 - **Diagnostics Reporting**: Automatic discovery of Dante & network devices via mDNS, SAP/SDP stream discovery, and customizable JSON report export.
 - **Sleek CLI Interface**: Beautiful console formatting, table views, and real-time progress indicators powered by `rich`.
+- **Interactive REPL Mode**: Launch without any arguments to enter an interactive shell and run consecutive commands (analysis, WAV extraction, interface listing) without restarting the process.
 
 ---
 
@@ -62,6 +63,11 @@ python aoip_scope.py analyze path/to/capture.pcapng --ssrc 0x4B3D2A1C --ch 3,4 -
 To generate a detailed JSON diagnostic report:
 ```bash
 python aoip_scope.py analyze path/to/capture.pcapng --report
+```
+
+Launch without any arguments to enter **Interactive Mode (REPL)** and run the commands above consecutively without restarting the process:
+```bash
+python aoip_scope.py
 ```
 
 ### 3. Live Packet Capture

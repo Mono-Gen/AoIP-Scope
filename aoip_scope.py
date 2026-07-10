@@ -59,11 +59,14 @@ class AoIPScopeCLI:
     def run(self):
         sys_args = sys.argv[1:]
         
-        # Detect if launched directly (double-click) or via file drag-and-drop
-        is_direct_run = False
+        # If no arguments are passed, start interactive mode (REPL)
         if not sys_args:
-            is_direct_run = True
-        elif len(sys_args) == 1 and sys_args[0] not in ["analyze", "record", "ifaces", "-h", "--help", "-v", "--version"]:
+            self.run_interactive()
+            return
+            
+        # Detect if launched via file drag-and-drop (single argument, not a command/flag)
+        is_direct_run = False
+        if len(sys_args) == 1 and sys_args[0] not in ["analyze", "record", "ifaces", "-h", "--help", "-v", "--version"]:
             is_direct_run = True
             sys_args.insert(0, "analyze")
             
@@ -91,6 +94,67 @@ class AoIPScopeCLI:
             if is_direct_run:
                 print("\n" + "=" * 50)
                 input("Press [Enter] to exit...")
+
+    def run_interactive(self):
+        self.ui.print_banner(self.VERSION)
+        print("Interactive mode started. Type 'help' or '?' for instructions, 'exit' or 'quit' to exit.")
+        
+        import shlex
+        
+        while True:
+            try:
+                cmd_line = input("\naoip-scope > ").strip()
+                if not cmd_line:
+                    continue
+                
+                # Using posix=False to support Windows backslashes in file paths correctly
+                tokens = shlex.split(cmd_line, posix=False)
+                if not tokens:
+                    continue
+                
+                cmd = tokens[0].lower()
+                
+                if cmd in ["exit", "quit"]:
+                    print("Exiting...")
+                    break
+                elif cmd in ["help", "?", "--help", "-h"]:
+                    self.print_interactive_help()
+                    continue
+                
+                try:
+                    args = self.parser.parse_args(tokens)
+                    if not args.command:
+                        self.parser.print_help()
+                        continue
+                        
+                    if args.command == "ifaces":
+                        self.run_ifaces()
+                    elif args.command == "record":
+                        self.run_record(args)
+                    elif args.command == "analyze":
+                        self.run_analyze(args)
+                except SystemExit:
+                    # Trap argparse exit (e.g. --help or invalid args) and continue REPL
+                    pass
+                except Exception as e:
+                    self.ui.print_error(f"Error executing command: {e}")
+                    
+            except (KeyboardInterrupt, EOFError):
+                print("\nExiting...")
+                break
+
+    def print_interactive_help(self):
+        print("\nAvailable Commands:")
+        print("  analyze <pcap> [options] : Analyze offline PCAP/PCAPNG file")
+        print("                             (e.g., analyze ./capture.pcapng --report)")
+        print("  record [options]          : Live network packet capture")
+        print("                             (e.g., record -i 1 -m join --ip 239.69.10.1)")
+        print("  ifaces                    : List available network interfaces")
+        print("  help, ?                   : Show this help message")
+        print("  exit, quit                : Exit interactive mode")
+        print("\nFor details on options for a specific command, use: <command> -h")
+        print("  (e.g., analyze -h)")
+
 
     def run_ifaces(self):
         self.ui.print_banner(self.VERSION)

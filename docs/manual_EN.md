@@ -26,6 +26,29 @@ To ensure the correct operation of this tool, the following environment is requi
 
 ## 3. Basic Usage & Subcommands
 
+When launched without command-line arguments, AoIP-Scope starts in **Interactive Mode (REPL)**. When launched with arguments, it operates in **One-shot Mode**.
+
+### 3.1 Interactive Mode (REPL)
+If you run `AoIP-Scope.exe` without any arguments, an interactive shell environment will launch. You can repeatedly enter and run commands at the `aoip-scope > ` prompt, allowing you to perform consecutive PCAP analyses, WAV extractions, or interface listings without the program closing.
+
+**How to Launch:**
+```powershell
+.\AoIP-Scope.exe
+```
+
+**Example Commands within Interactive Mode:**
+- `analyze ./raw_capture.pcapng` (Analyze PCAP file)
+- `analyze ./raw_capture.pcapng --ssrc 0x4B3D2A1C --out extracted.wav` (Extract audio to WAV)
+- `ifaces` (Show network interface list)
+- `analyze -h` (Show help for analyze command. It returns to the prompt instead of closing)
+- `help` or `?` (Show help for the interactive mode)
+- `exit` or `quit` (Exit the interactive mode)
+
+---
+
+### 3.2 One-shot Mode & Primary Subcommands
+When launched with arguments, the tool executes the specified command and exits immediately. This is suitable for use in automation scripts.
+
 AoIP-Scope provides three primary subcommands:
 
 1. **`analyze`**: Reads a PCAP/PCAPNG file, performs stream inventory/health diagnostics, analyzes PTP synchronization, and extracts decoded audio.
